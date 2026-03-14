@@ -48,7 +48,7 @@ jobs:
             sleep 3
 
             # Ejecutar la app con nohup (CORREGIDO)
-            nohup java -jar *.jar > app.log 2>&1 &
+            setsid java -jar *.jar > app.log 2>&1 &
 
             # Dar tiempo a que arranque
             sleep 8
