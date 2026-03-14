@@ -42,5 +42,21 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ec2-user/app
+
+            # Matar proceso anterior si existe
             sudo pkill -f 'java -jar' || true
+            sleep 3
+
+            # Ejecutar la app con nohup (CORREGIDO)
             nohup java -jar *.jar > app.log 2>&1 &
+
+            # Dar tiempo a que arranque
+            sleep 8
+
+            # Verificar
+            echo "=== PROCESOS ==="
+            ps aux | grep java
+
+            echo "=== PUERTO 8080 ==="
+            ss -tlnp | grep 8080
+            echo "Se desplegó correctamente papu"
