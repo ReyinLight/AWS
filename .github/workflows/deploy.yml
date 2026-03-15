@@ -19,13 +19,16 @@ jobs:
       - name: Build with Maven
         run: ./mvnw clean package
 
+      - name: List files after build (debug)
+        run: ls -la target/
+
       - name: Deploy JAR to EC2
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "target/*.jar,Dockerfile"
+          source: "target/*.jar,dockerfile"
           target: "/home/ec2-user/app"
           strip_components: 1
 
@@ -36,25 +39,67 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            echo "=== CONTENIDO COMPLETO DEL DIRECTORIO ==="
             cd /home/ec2-user/app
+            pwd
+            ls -la
+            echo "=== FIN LISTADO ==="
+            
+            # Verificar si existe dockerfile
+            if [ -f "dockerfile" ]; then
+              echo "✅ dockerfile existe"
+              cat dockerfile
+            else
+              echo "❌ dockerfile NO existe"
+            fi
+            
+            # Verificar si existe Dockerfile
+            if [ -f "Dockerfile" ]; then
+              echo "✅ Dockerfile existe"
+              cat Dockerfile
+            else
+              echo "❌ Dockerfile NO existe"
+            fi
+            
+            # Verificar JARs
+            echo "=== JARS ENCONTRADOS ==="
+            ls -la *.jar || echo "No hay JARs"
+            
+            # Si no hay dockerfile, crearlo
+            if [ ! -f "dockerfile" ] && [ ! -f "Dockerfile" ]; then
+              echo "=== CREANDO DOCKERFILE ==="
+              cat > dockerfile << 'EOF'
+            FROM amazoncorretto:17
+            WORKDIR /app
+            COPY *.jar app.jar
+            EXPOSE 8080
+            CMD ["java", "-jar", "app.jar"]
+            EOF
+              echo "✅ Dockerfile creado"
+              cat dockerfile
+            fi
             
             # Detener y eliminar contenedor anterior
-            docker stop myapp || true
-            docker rm myapp || true
+            echo "=== DETENIENDO CONTENEDOR ANTIGUO ==="
+            docker stop myapp 2>/dev/null || true
+            docker rm myapp 2>/dev/null || true
             
             # Construir nueva imagen
-            docker build -t myapp:latest .
+            echo "=== CONSTRUYENDO IMAGEN ==="
+            docker build -f dockerfile -t myapp:latest .
             
             # Ejecutar nuevo contenedor
+            echo "=== EJECUTANDO CONTENEDOR ==="
             docker run -d \
-            --name myapp \
-            --restart always \
-            -p 8080:8080 \
-            -v /home/ec2-user/app/logs:/app/logs \
-            myapp:latest
+              --name myapp \
+              --restart always \
+              -p 8080:8080 \
+              -v /home/ec2-user/app/logs:/app/logs \
+              myapp:latest
             
-            # Mostrar logs
-            sleep 3
+            # Mostrar resultados
+            sleep 5
+            echo "=== CONTENEDORES CORRIENDO ==="
             docker ps
-            docker logs myapp --tail 20
-            
+            echo "=== LOGS DE LA APLICACIÓN ==="
+            docker logs myapp --tail 20 || echo "No hay logs aún"
