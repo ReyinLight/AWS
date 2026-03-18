@@ -1,5 +1,5 @@
-FROM amazoncorretto:17
+FROM amazoncorretto:17-alpine
 WORKDIR /app
-COPY tarjet/*jar app.jar
+COPY target/*jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
