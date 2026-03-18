@@ -53,14 +53,6 @@ jobs:
               echo "❌ dockerfile NO existe"
             fi
             
-            # Verificar si existe Dockerfile
-            if [ -f "Dockerfile" ]; then
-              echo "✅ Dockerfile existe"
-              cat Dockerfile
-            else
-              echo "❌ Dockerfile NO existe"
-            fi
-            
             # Verificar JARs
             echo "=== JARS ENCONTRADOS ==="
             ls -la *.jar || echo "No hay JARs"
@@ -81,16 +73,16 @@ jobs:
             
             # Detener y eliminar contenedor anterior
             echo "=== DETENIENDO CONTENEDOR ANTIGUO ==="
-            docker stop myapp 2>/dev/null || true
-            docker rm myapp 2>/dev/null || true
+            sudo docker stop myapp 2>/dev/null || true
+            sudo docker rm myapp 2>/dev/null || true
             
             # Construir nueva imagen
             echo "=== CONSTRUYENDO IMAGEN ==="
-            docker build -f dockerfile -t myapp:latest .
+            sudo docker build -f dockerfile -t myapp:latest .
             
             # Ejecutar nuevo contenedor
             echo "=== EJECUTANDO CONTENEDOR ==="
-            docker run -d \
+            sudo docker run -d \
               --name myapp \
               --restart always \
               -p 8080:8080 \
@@ -100,6 +92,6 @@ jobs:
             # Mostrar resultados
             sleep 5
             echo "=== CONTENEDORES CORRIENDO ==="
-            docker ps
+            sudo docker ps
             echo "=== LOGS DE LA APLICACIÓN ==="
-            docker logs myapp --tail 20 || echo "No hay logs aún"
+            sudo docker logs myapp --tail 20 || echo "No hay logs aún"
