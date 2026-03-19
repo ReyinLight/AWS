@@ -1,15 +1,13 @@
-name: Test Runner
+name: Test Final
 
 on:
   push:
-    branches: [ test-runner ]
+    branches: [ test-final ]
 
 jobs:
   test:
-    runs-on: synology-runner
+    runs-on: self-hosted  # lo más simple posible
     steps:
-      - name: Hola desde Synology
-        run: |
-          echo "¡El runner funciona!"
-          echo "Estoy corriendo en: $(hostname)"
-          docker --version
+      - run: echo "¡Funciona!"
+      - run: docker --version
+      - run: hostname
