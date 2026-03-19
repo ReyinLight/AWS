@@ -6,7 +6,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # ← COMPILACIÓN EN GITHUB
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout código
@@ -21,23 +21,21 @@ jobs:
       - name: Compilar con Maven
         run: ./mvnw clean package -DskipTests
 
-      - name: Subir JAR como artefacto temporal
+      - name: Subir JAR como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: app-jar
           path: target/*.jar
-          retention-days: 1  # Se borra solo después de 1 día
 
   deploy-to-nas:
-    needs: deploy  # Espera a que termine la compilación
-    runs-on: self-hosted  # ← ESTO CORRE EN TU NAS
-    if: success()  # Solo si compiló bien
+    needs: deploy
+    runs-on: self-hosted
 
     steps:
-      - name: Checkout código (para Dockerfile)
+      - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Descargar JAR compilado
+      - name: Descargar JAR
         uses: actions/download-artifact@v4
         with:
           name: app-jar
@@ -49,9 +47,14 @@ jobs:
 
       - name: Desplegar contenedor
         run: |
-          # Detener y eliminar contenedor anterior si existe
+          # Crear directorio de logs si no existe
+          mkdir -p /volume1/docker/mi-app/logs
+          
+          # Detener y eliminar contenedor anterior
           docker stop mi-app 2>/dev/null || true
           docker rm mi-app 2>/dev/null || true
+          
+          sleep 3
           
           # Ejecutar nuevo contenedor
           docker run -d \
@@ -60,6 +63,3 @@ jobs:
             -p 8081:8080 \
             -v /volume1/docker/mi-app/logs:/app/logs \
             mi-app:latest
-
-      - name: Limpiar imágenes viejas
-        run: docker image prune -f
