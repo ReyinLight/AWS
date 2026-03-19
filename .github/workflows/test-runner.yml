@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, synology, docker]
+    runs-on: synology-runner
     steps:
       - name: Hola desde Synology
         run: |
