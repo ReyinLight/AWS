@@ -8,6 +8,6 @@ public class controller {
 
     @GetMapping
     public String saludoCordial(){
-        return "<H1>Saludos cordiales Lemuel de mrda! >:D</H1>";
+        return "<H1>saludos coordiales SYNOLOGY</H1>";
     }
 }
