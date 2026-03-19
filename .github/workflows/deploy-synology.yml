@@ -7,21 +7,19 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configurar JDK 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Compilar con Maven
+      - name: Compilar
         run: ./mvnw clean package -DskipTests
 
-      - name: Subir JAR como artefacto
+      - name: Subir JAR
         uses: actions/upload-artifact@v4
         with:
           name: app-jar
@@ -30,10 +28,8 @@ jobs:
   deploy-to-nas:
     needs: deploy
     runs-on: self-hosted
-
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Descargar JAR
         uses: actions/download-artifact@v4
@@ -41,34 +37,19 @@ jobs:
           name: app-jar
           path: target/
 
-      - name: Construir imagen Docker
+      - name: Preparar carpetas
         run: |
-          docker build -t mi-app:latest .
+          mkdir -p /volume1/docker/mi-app/logs
+          chmod 777 /volume1/docker/mi-app/logs
 
-      - name: Desplegar contenedor
+      - name: Construir imagen
+        run: docker build -t mi-app:latest .
+
+      - name: Desplegar
         run: |
-          echo "=== DEPURACIÓN ==="
-          echo "Usuario actual: $(whoami)"
-          echo "Directorio actual: $(pwd)"
-
-          echo "=== VERIFICANDO RUTA COMPLETA ==="
-          ls -la /volume1/docker/ || echo "❌ No existe /volume1/docker"
-
-          echo "=== CREANDO DIRECTORIO ==="
-          mkdir -pv /volume1/docker/mi-app/logs
-          echo "Código de salida mkdir: $?"
-
-          echo "=== VERIFICANDO QUE SE CREÓ ==="
-          ls -la /volume1/docker/mi-app/logs || echo "❌ No se pudo crear"
-
-          echo "=== PERMISOS ==="
-          ls -la /volume1/docker/
-
-          # Ahora sí, el deploy
           docker stop mi-app 2>/dev/null || true
           docker rm mi-app 2>/dev/null || true
-          sleep 3
-
+          sleep 2
           docker run -d \
             --name mi-app \
             --restart unless-stopped \
