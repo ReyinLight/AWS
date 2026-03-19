@@ -1,0 +1,40 @@
+name: Deploy to Synology
+
+on:
+  push:
+    branches: [ synology ]  # Se activa cuando haces push a synology
+
+jobs:
+  deploy:
+    runs-on: self-hosted  # Usa el runner de tu NAS
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Construir JAR con Maven
+        run: ./mvnw clean package -DskipTests  # -DskipTests para ir más rápido
+
+      - name: Construir imagen Docker
+        run: |
+          docker build -t mi-aplicacion:latest .
+
+      - name: Detener y eliminar contenedor antiguo
+        run: |
+          if [ "$(docker ps -aq -f name=mi-app)" ]; then
+            docker stop mi-app || true
+            docker rm mi-app || true
+          fi
+
+      - name: Ejecutar nuevo contenedor
+        run: |
+          docker run -d \
+            --name mi-app \
+            --restart unless-stopped \
+            -p 8080:8080 \
+            -v /volume1/docker/mi-app/logs:/app/logs \
+            mi-aplicacion:latest
+
+      - name: Limpiar imágenes viejas
+        run: |
+          docker image prune -f
