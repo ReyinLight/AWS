@@ -1,0 +1,15 @@
+name: Test Runner
+
+on:
+  push:
+    branches: [ test-runner ]
+
+jobs:
+  test:
+    runs-on: [self-hosted, synology, docker]
+    steps:
+      - name: Hola desde Synology
+        run: |
+          echo "¡El runner funciona!"
+          echo "Estoy corriendo en: $(hostname)"
+          docker --version
