@@ -47,16 +47,28 @@ jobs:
 
       - name: Desplegar contenedor
         run: |
-          # Crear directorio de logs si no existe
-          mkdir -p /volume1/docker/mi-app/logs
-          
-          # Detener y eliminar contenedor anterior
+          echo "=== DEPURACIÓN ==="
+          echo "Usuario actual: $(whoami)"
+          echo "Directorio actual: $(pwd)"
+
+          echo "=== VERIFICANDO RUTA COMPLETA ==="
+          ls -la /volume1/docker/ || echo "❌ No existe /volume1/docker"
+
+          echo "=== CREANDO DIRECTORIO ==="
+          mkdir -pv /volume1/docker/mi-app/logs
+          echo "Código de salida mkdir: $?"
+
+          echo "=== VERIFICANDO QUE SE CREÓ ==="
+          ls -la /volume1/docker/mi-app/logs || echo "❌ No se pudo crear"
+
+          echo "=== PERMISOS ==="
+          ls -la /volume1/docker/
+
+          # Ahora sí, el deploy
           docker stop mi-app 2>/dev/null || true
           docker rm mi-app 2>/dev/null || true
-          
           sleep 3
-          
-          # Ejecutar nuevo contenedor
+
           docker run -d \
             --name mi-app \
             --restart unless-stopped \
