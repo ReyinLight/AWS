@@ -2,39 +2,64 @@ name: Deploy to Synology
 
 on:
   push:
-    branches: [ synology ]  # Se activa cuando haces push a synology
+    branches: [ synology ]
 
 jobs:
   deploy:
-    runs-on: self-hosted  # Usa el runner de tu NAS
+    runs-on: ubuntu-latest  # ← COMPILACIÓN EN GITHUB
 
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Construir JAR con Maven
-        run: ./mvnw clean package -DskipTests  # -DskipTests para ir más rápido
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Compilar con Maven
+        run: ./mvnw clean package -DskipTests
+
+      - name: Subir JAR como artefacto temporal
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
+          retention-days: 1  # Se borra solo después de 1 día
+
+  deploy-to-nas:
+    needs: deploy  # Espera a que termine la compilación
+    runs-on: self-hosted  # ← ESTO CORRE EN TU NAS
+    if: success()  # Solo si compiló bien
+
+    steps:
+      - name: Checkout código (para Dockerfile)
+        uses: actions/checkout@v4
+
+      - name: Descargar JAR compilado
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
 
       - name: Construir imagen Docker
         run: |
-          docker build -t mi-aplicacion:latest .
+          docker build -t mi-app:latest .
 
-      - name: Detener y eliminar contenedor antiguo
+      - name: Desplegar contenedor
         run: |
-          if [ "$(docker ps -aq -f name=mi-app)" ]; then
-            docker stop mi-app || true
-            docker rm mi-app || true
-          fi
-
-      - name: Ejecutar nuevo contenedor
-        run: |
+          # Detener y eliminar contenedor anterior si existe
+          docker stop mi-app 2>/dev/null || true
+          docker rm mi-app 2>/dev/null || true
+          
+          # Ejecutar nuevo contenedor
           docker run -d \
             --name mi-app \
             --restart unless-stopped \
             -p 8080:8080 \
             -v /volume1/docker/mi-app/logs:/app/logs \
-            mi-aplicacion:latest
+            mi-app:latest
 
       - name: Limpiar imágenes viejas
-        run: |
-          docker image prune -f
+        run: docker image prune -f
